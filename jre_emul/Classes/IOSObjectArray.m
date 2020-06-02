@@ -122,44 +122,36 @@ static IOSObjectArray *IOSObjectArray_CreateArrayWithObjects(
   return buffer_[index];
 }
 
-#if !defined(J2OBJC_DISABLE_ARRAY_TYPE_CHECKS)
 static void ThrowArrayStoreException(IOSObjectArray *array, id value) {
   NSString *msg = [NSString stringWithFormat:
       @"attempt to add object of type %@ to array with type %@",
       [[value java_getClass] getName], [array->elementType_ getName]];
   @throw AUTORELEASE([[JavaLangArrayStoreException alloc] initWithNSString:msg]);
 }
-#endif
 
 static inline id IOSObjectArray_checkValue(
     __unsafe_unretained IOSObjectArray *array, __unsafe_unretained id value) {
-#if !defined(J2OBJC_DISABLE_ARRAY_TYPE_CHECKS)
   if (value && ![array->elementType_ isInstance:value]) {
     ThrowArrayStoreException(array, value);
   }
-#endif
   return value;
 }
 
 // Same as above, but releases the value before throwing an exception.
 static inline void IOSObjectArray_checkRetainedValue(IOSObjectArray *array, id value) {
-#if !defined(J2OBJC_DISABLE_ARRAY_TYPE_CHECKS)
   if (value && ![array->elementType_ isInstance:value]) {
     [value autorelease];
     ThrowArrayStoreException(array, value);
   }
-#endif
 }
 
 // Same as IOSArray_checkIndex, but releases the value before throwing an
 // exception.
 static inline void IOSObjectArray_checkIndexRetainedValue(jint size, jint index, id value) {
-#if !defined(J2OBJC_DISABLE_ARRAY_BOUND_CHECKS)
   if (index < 0 || index >= size) {
     [value autorelease];
     IOSArray_throwOutOfBoundsWithMsg(size, index);
   }
-#endif
 }
 
 id IOSObjectArray_Set(
@@ -236,14 +228,10 @@ static void DoRetainedMove(id __strong *buffer, jint src, jint dest, jint length
   IOSArray_checkRange(destination->size_, dstOffset, length);
   IOSObjectArray *dest = (IOSObjectArray *) destination;
 
-#ifdef J2OBJC_DISABLE_ARRAY_TYPE_CHECKS
-  jboolean skipElementCheck = true;
-#else
   // If dest element type can be assigned to this array, then all of its
   // elements are assignable and therefore don't need to be individually
   // checked.
   jboolean skipElementCheck = [dest->elementType_ isAssignableFrom:elementType_];
-#endif
 
   if (self == dest) {
     if (dest->isRetained_) {
